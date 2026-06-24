@@ -1,20 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Document</title>
+  <title>Anti-JS-Anti-Debugger</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
-<body style="width: 150px;">
-  <label ><input type="checkbox" data-key="config-hook-console">hook console</label> 
-  <br/>
-  <label ><input type="checkbox" data-key="config-hook-debugger">hook dynamic debugger</label>
-  <br/>
-  <label ><input type="checkbox" data-key="config-hook-regExp">hook regExp</label>
-  <br/>
-  <label ><input type="checkbox" data-key="config-hook-pushState">hook pushState</label>
-  <br/>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <span class="popup-title">Anti JS Anti Debugger</span>
+    </div>
+    <div class="popup-body">
+      <div class="switch-item">
+        <div class="switch-info">
+          <span class="switch-label">Hook Console</span>
+          <span class="switch-desc">拦截 console 调试输出</span>
+        </div>
+        <label class="ant-switch" data-key="config-hook-console">
+          <input type="checkbox" class="ant-switch-input" data-key="config-hook-console">
+          <span class="ant-switch-inner"></span>
+        </label>
+      </div>
+      <div class="switch-item">
+        <div class="switch-info">
+          <span class="switch-label">Hook Debugger</span>
+          <span class="switch-desc">拦截动态 debugger 语句</span>
+        </div>
+        <label class="ant-switch" data-key="config-hook-debugger">
+          <input type="checkbox" class="ant-switch-input" data-key="config-hook-debugger">
+          <span class="ant-switch-inner"></span>
+        </label>
+      </div>
+      <div class="switch-item">
+        <div class="switch-info">
+          <span class="switch-label">Hook RegExp</span>
+          <span class="switch-desc">拦截正则表达式检测</span>
+        </div>
+        <label class="ant-switch" data-key="config-hook-regExp">
+          <input type="checkbox" class="ant-switch-input" data-key="config-hook-regExp">
+          <span class="ant-switch-inner"></span>
+        </label>
+      </div>
+      <div class="switch-item">
+        <div class="switch-info">
+          <span class="switch-label">Hook PushState</span>
+          <span class="switch-desc">拦截历史记录操作</span>
+        </div>
+        <label class="ant-switch" data-key="config-hook-pushState">
+          <input type="checkbox" class="ant-switch-input" data-key="config-hook-pushState">
+          <span class="ant-switch-inner"></span>
+        </label>
+      </div>
+    </div>
+  </div>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,10 +1,21 @@
 {
-  "name": "fuck-debugger-extensions",
-  "version": "1.0.0",
-  "description": "fuck-debugger-extensions",
+  "name": "anti-js-anti-debugger",
+  "version": "1.0.1",
+  "description": "anti-js-anti-debugger",
   "permissions": ["storage", "activeTab", "tabs", "debugger", "storage"],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
   "browser_action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
   },
   "background": {
     "scripts": ["background.js"],
