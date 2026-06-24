@@ -3,135 +3,123 @@
 English | [简体中文](README.zh-CN.md)
 
 ## Introduction
-This extension is an anti-anti-debugging framework
 
-When I saw a beautiful piece of code, I found that an anti-debugging.
+An anti-anti-debugging browser extension.
 
-crashed!!!
+When you spot some elegant code, only to find it has anti-debugging, browser freezing, or even crashes -- that's just not acceptable.
 
-Having this plugin can solve the problem invisibly.
+This extension solves the problem without a trace.
 
+## Features
 
-## Main problem solving
-1. Console devtool detection
-2. PushState crash browser
-3. debugger crash browser and detects devtool
-4. regexp code style detection
-   
+1. **Hook Console** - Blocks console-based DevTools detection
+2. **Hook PushState** - Prevents `history.pushState` abuse that freezes the browser
+3. **Hook Debugger** - Strips `debugger` statements from dynamically executed code
+4. **Hook RegExp** - Defeats RegExp-based code formatting detection
 
+## Installation
 
-## install and use
+### Download
 
-### download
-```
-cd ~
+```bash
 git clone https://github.com/Wu-jiyan/anti-js-anti-debugger.git
-
 ```
 
-### install
+### Load in Chrome
 
-```markdown
-1. Navigate to chrome://extensions in your browser. You can also access this page by clicking on the Chrome menu on the top right side of the Omnibox, hovering over   **More Tools** and selecting **Extensions**.  
-2. Check the box next to **Developer Mode**.  
-3. Click **Load Unpacked Extension** and select the directory for your "Hello Extensions" extension.
+1. Navigate to `chrome://extensions` in your browser
+2. Enable **Developer mode** in the top right corner
+3. Click **Load unpacked** and select the cloned project directory
 
-Congratulations! 
-```
-### use  
+### Usage
 
-Find the extension on the right side of the address bar. Click Configure.
+Click the extension icon to the right of the address bar to configure which hooks to enable.
 
-Shortcut **Alt + Shift + D** Enable request interception
+Press **Alt + Shift + D** to toggle request interception (requires Chrome debugger protocol).
 
+## Technical Details
 
+### Console Detection
 
-## Detailed explanation
+Sites use `console.log` with getter-based objects to detect DevTools:
 
-### `Use console.log to determine whether to open the developer tools`
 ```javascript
-//method 1
-var x = document.createElement ('div');
-Object.defineProperty (x, 'id', {
-    get: function () {
-        // developer tools are opened
-    }
+// Method 1: Object.defineProperty
+var x = document.createElement('div');
+Object.defineProperty(x, 'id', {
+    get: function () {
+        // DevTools is open
+    }
 });
-console.log (x);
-// Method 2
-var c = new RegExp ("1");
+console.log(x);
+
+// Method 2: Custom toString
+var c = new RegExp("1");
 c.toString = function () {
-  // developer tools are opened
+    // DevTools is open
 }
-console.log (c);
+console.log(c);
 ```
-Hook the console object directly to invalidate all output
 
+**Solution:** Hook all console methods to suppress output.
 
------
-### `Use the debugger statement to determine whether to open the developer tools and the infinite loop debugger crash machine`
+### Debugger Detection
+
+Sites use timing checks around `debugger` statements or infinite debugger loops:
+
 ```javascript
-var startTime = new Date ();
+var startTime = new Date();
 debugger;
-var endTime = new Date ();
-var isDev = endTime-startTime> 100;// developer tools are opened
+var endTime = new Date();
+var isDev = endTime - startTime > 100;
 
 while (true) {
-  debugger;
+    debugger;
 }
 
-// Another implementation of debugger
-(function () {}). constructor ("debugger") ()
-
+// Dynamic debugger injection
+(function(){}).constructor("debugger")()
 ```
-Static debugger
-Use the chrome protocol to intercept all requests, modify the return value.
 
-Dynamic debugger
-Hooked Function.protype.constructor to replace all debugger characters
+**Static debugger:** Intercepts all script responses via Chrome protocol and strips `debugger` keywords.
 
----
-### `Regexp code format detection`
+**Dynamic debugger:** Hooks `Function.prototype.constructor` and `eval` to strip `debugger` from dynamically generated code.
+
+### RegExp Formatting Detection
+
+Sites check if code has been beautified/formatted:
+
 ```javascript
-new RegExp(`\\w+ *\\(\\) *{\\w+ *['|"].+['|"];? *}`).test((function(){return "dev"}).toString())
+new RegExp(`\\w+ *\\(\\) *{\\w+ *['|"].+['|"];? *}`)
+    .test((function(){return "dev"}).toString())
 ```
-The current solution is to hook regexp when the apply function is triggered, the parameter is equal to the given value and return an empty regexp
 
-----
+**Solution:** Hooks `RegExp` constructor (both `apply` and `construct` traps) to return an empty RegExp when the detection pattern is matched.
 
-### chrome protocol
+### Chrome Protocol
 
-Approximate process
-1. chrome.debugger.attach injects the specified tabId
-2. Listen for chrome.debugger.onEvent to get the return value
-3. Send Fetch.enable to enable the request interceptor
-4. Modify the response in the event Fetch.requestPaused to return the result
-5. OK!
-   
-This feature uses chrome **experimental features** requires a new version of chrome
+The request interception feature uses the Chrome Debugger Protocol:
 
-You can do more with the chrome protocol
+1. Attach to the target tab via `chrome.debugger.attach`
+2. Listen for `chrome.debugger.onEvent` to capture responses
+3. Enable the Fetch interceptor with `Fetch.enable`
+4. Modify responses in the `Fetch.requestPaused` handler
 
+This feature uses Chrome's **experimental APIs** and requires a recent version of Chrome.
 
-## other
+## Contributing
 
+If you encounter issues or have suggestions, please open an issue on GitHub.
 
-If you encounter problems and suggestions during use, you can contact us with issuse;
+Pull requests are welcome. If you're working on anti-anti-anti-debugging, even better.
 
-If there are better ideas, you can get involved.
+## Disclaimer
 
----
+This project is for academic research only. It does not advocate using these techniques to crack or bypass protections on third-party projects for commercial purposes.
 
+All client-side code is inherently vulnerable to reverse engineering. Sensitive logic should reside on the server.
 
-The project does not advocate cracking others' projects for profit. For academic research use only.
+## References
 
-After all the code runs on the client. If it's valuable, just work hard. All can be broken.
-
-It is recommended to put unimportant code on the client.
-
-
-## references
-
-https://developer.chrome.com/extensions
-
-https://chromedevtools.github.io/devtools-protocol/tot/Browser
+- [Chrome Extensions Documentation](https://developer.chrome.com/extensions)
+- [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/tot/Browser)

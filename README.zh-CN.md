@@ -3,132 +3,123 @@
 简体中文 | [English](README.md)
 
 ## 简介
-这个拓展是一个 反反反调试框架 
 
-当看到一段漂亮代码的时候 发现有反调试 卡浏览器 死机 这个时候就很不爽了。
+一个反反调试浏览器扩展。
 
-拥有这个插件 就可以解决问题于无形之中。
+当你看到一段漂亮的代码，却发现它有反调试、卡浏览器、甚至死机 -- 这就很不爽了。
 
+拥有这个插件，解决问题于无形之中。
 
-## 主要解决问题
-1. 基于console的devtool检测
-2. 基于pushState的卡浏览器
-3. 基于debugger的卡浏览器 检测devtool
-4. 基于regexp的代码风格检测
-   
+## 功能
 
+1. **Hook Console** - 拦截基于 console 的 DevTools 检测
+2. **Hook PushState** - 阻止通过 `history.pushState` 高频调用卡死浏览器
+3. **Hook Debugger** - 从动态执行的代码中移除 `debugger` 语句
+4. **Hook RegExp** - 破解基于正则表达式的代码格式化检测
 
-## 安装和使用
+## 安装
 
 ### 下载
-```
-cd ~
+
+```bash
 git clone https://github.com/Wu-jiyan/anti-js-anti-debugger.git
-
 ```
 
-### 安装  
+### 加载到 Chrome
 
-```markdown  
-1. Navigate to chrome://extensions in your browser. You can also access this page by clicking on the Chrome menu on the top right side of the Omnibox, hovering over   **More Tools** and selecting **Extensions**.  
-2. Check the box next to **Developer Mode**.  
-3. Click **Load Unpacked Extension** and select the directory for your "Hello Extensions" extension.
+1. 在浏览器中访问 `chrome://extensions`
+2. 开启右上角的 **开发者模式**
+3. 点击 **加载已解压的扩展程序**，选择克隆下来的项目目录
 
-Congratulations! 
-```
-### 使用  
+### 使用
 
-地址栏右侧找到拓展 点击 配置 功能选项 刷新即可
+点击地址栏右侧的扩展图标，配置需要开启的功能选项。
 
-快捷键 **Alt+Shift+D** 开启请求拦截功能 
-
-
+快捷键 **Alt + Shift + D** 切换请求拦截功能（需要 Chrome 调试协议）。
 
 ## 原理详解
 
-### `使用console.log来判断是否打开开发者工具`
+### console 检测
+
+网站通过 `console.log` 配合 getter 对象来检测 DevTools 是否打开：
+
 ```javascript
-//方法1
+// 方法 1: Object.defineProperty
 var x = document.createElement('div');
 Object.defineProperty(x, 'id', {
-    get:function(){
+    get: function () {
         // 开发者工具被打开
     }
 });
 console.log(x);
-//方法2
+
+// 方法 2: 自定义 toString
 var c = new RegExp("1");
-c.toString = function(){
-  // 开发者工具被打开
+c.toString = function () {
+    // 开发者工具被打开
 }
 console.log(c);
 ```
-直接hook console 对象 让所有输出失效  
 
+**解决方案：** Hook 所有 console 方法，使其输出失效。
 
------
-### `使用debugger语句判断是否打开开发者工具 和 无限循环debugger卡机`
+### debugger 检测
+
+网站通过 `debugger` 语句的执行耗时判断，或用无限循环 debugger 卡死浏览器：
+
 ```javascript
 var startTime = new Date();
 debugger;
 var endTime = new Date();
-var isDev = endTime - startTime >100;
+var isDev = endTime - startTime > 100;
 
-while(true){
-  debugger;
+while (true) {
+    debugger;
 }
 
-// debugger 的另一种实现方式
+// 动态注入 debugger
 (function(){}).constructor("debugger")()
-
 ```
-静态debugger  
-使用chrome protocol 拦截所有请求 修改返回值
 
-动态debugger  
-hook 了 Function.protype.constructor 替换所有的debugger 字符
+**静态 debugger：** 通过 Chrome 协议拦截所有脚本请求，修改返回值，移除 `debugger` 关键字。
 
----
-### `基于regexp的代码格式化检测`
+**动态 debugger：** Hook `Function.prototype.constructor` 和 `eval`，在动态生成的代码中替换 `debugger` 字符。
+
+### 正则格式化检测
+
+网站通过正则检测代码是否被格式化美化：
+
 ```javascript
-new RegExp(`\\w+ *\\(\\) *{\\w+ *['|"].+['|"];? *}`).test((function(){return "dev"}).toString())
+new RegExp(`\\w+ *\\(\\) *{\\w+ *['|"].+['|"];? *}`)
+    .test((function(){return "dev"}).toString())
 ```
-目前的解决方案是 hook regexp 当触发apply函数的时候 参数等于给定值 返回空regexp  
 
-----
+**解决方案：** Hook `RegExp` 构造函数（同时拦截 `apply` 和 `construct` 调用），当匹配到检测用的正则模式时返回空 RegExp。
 
-### chrome protocol
+### Chrome 调试协议
 
-大概流程
-1. chrome.debugger.attach 注入指定tabId
-2. 监听chrome.debugger.onEvent 获取返回值
-3. 发送 Fetch.enable 开启请求拦截器
-4. 在事件 Fetch.requestPaused 中修改 response 返回结果
-5. OK！
-   
-该功能使用了chrome **实验特性** 需要新版chrome
+请求拦截功能基于 Chrome Debugger Protocol 实现：
 
-利用 **chrome protocol** 还能做到更多
+1. 通过 `chrome.debugger.attach` 注入目标标签页
+2. 监听 `chrome.debugger.onEvent` 获取响应数据
+3. 发送 `Fetch.enable` 开启请求拦截器
+4. 在 `Fetch.requestPaused` 事件中修改响应并返回
 
-## 其他
+该功能使用了 Chrome **实验性 API**，需要较新版本的 Chrome 浏览器。
 
+## 参与贡献
 
-如果在使用中遇到问题和建议可以提issuse与我们进行联系; 
+如果在使用中遇到问题或有建议，请在 GitHub 上提 issue。
 
-如果有更好的想法可以参与进来。  
+欢迎提交 Pull Request。如果你在开发反反反调试，那就更有意思了。
 
----
+## 免责声明
 
+本项目仅供学术研究使用，不倡导将相关技术用于破解或绕过第三方项目的保护措施以谋取商业利益。
 
-该项目不倡导去破解他人项目来谋取利益。仅做学术研究使用。
+客户端代码本质上容易被逆向分析，敏感逻辑应放在服务端实现。
 
-毕竟代码运行在客户端。如果有价值，只要花功夫。都是可以被人攻破的。
+## 参考
 
-建议把不重要的代码放在客户端。
-
-
-## 参考文献
-
-https://developer.chrome.com/extensions
-
-https://chromedevtools.github.io/devtools-protocol/tot/Browser
+- [Chrome 扩展开发文档](https://developer.chrome.com/extensions)
+- [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/tot/Browser)
