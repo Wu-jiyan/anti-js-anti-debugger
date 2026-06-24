@@ -1,4 +1,4 @@
-# fuck-debugger-extensions
+# anti-js-anti-debugger
 
 English | [简体中文](README.zh-CN.md)
 
@@ -25,7 +25,7 @@ Having this plugin can solve the problem invisibly.
 ### download
 ```
 cd ~
-git clone https://github.com/546669204/fuck-debugger-extensions.git
+git clone https://github.com/Wu-jiyan/anti-js-anti-debugger.git
 
 ```
 

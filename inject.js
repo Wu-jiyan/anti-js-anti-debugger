@@ -10,21 +10,21 @@ function core(e,window) {
     function Closure(injectFunction) {
       return function () {
         if (!arguments.length) return injectFunction.apply(this, arguments)
-        arguments[arguments.length - 1] = arguments[arguments.length - 1].replace(/debugger/g, "");
+        var last = arguments.length - 1;
+        if (typeof arguments[last] === "string") {
+          arguments[last] = arguments[last].replace(/debugger/g, "");
+        }
         return injectFunction.apply(this, arguments)
       }
     }
 
 
-    var oldFunctionConstructor = window.Function.prototype.constructor;
-    window.Function.prototype.constructor = Closure(oldFunctionConstructor)
-    //fix native function
-    window.Function.prototype.constructor.toString = oldFunctionConstructor.toString.bind(oldFunctionConstructor);
-
-    var oldFunction = Function;
-    window.Function = Closure(oldFunction)
-    //fix native function
-    window.Function.toString = oldFunction.toString.bind(oldFunction);
+    var oldFunction = window.Function;
+    var newFunction = Closure(oldFunction);
+    newFunction.prototype = oldFunction.prototype;
+    newFunction.toString = oldFunction.toString.bind(oldFunction);
+    window.Function = newFunction;
+    window.Function.prototype.constructor = newFunction;
 
     var oldEval = eval;
     window.eval = Closure(oldEval)
@@ -35,6 +35,7 @@ function core(e,window) {
     // hook GeneratorFunction
     var oldGeneratorFunctionConstructor = Object.getPrototypeOf(function* () {}).constructor
     var newGeneratorFunctionConstructor = Closure(oldGeneratorFunctionConstructor)
+    newGeneratorFunctionConstructor.prototype = oldGeneratorFunctionConstructor.prototype;
     newGeneratorFunctionConstructor.toString = oldGeneratorFunctionConstructor.toString.bind(oldGeneratorFunctionConstructor);
     Object.defineProperty(oldGeneratorFunctionConstructor.prototype, "constructor", {
       value: newGeneratorFunctionConstructor,
@@ -42,9 +43,10 @@ function core(e,window) {
       configurable: true
     })
 
-    // hook Async Function 
+    // hook Async Function
     var oldAsyncFunctionConstructor = Object.getPrototypeOf(async function () {}).constructor
     var newAsyncFunctionConstructor = Closure(oldAsyncFunctionConstructor)
+    newAsyncFunctionConstructor.prototype = oldAsyncFunctionConstructor.prototype;
     newAsyncFunctionConstructor.toString = oldAsyncFunctionConstructor.toString.bind(oldAsyncFunctionConstructor);
     Object.defineProperty(oldAsyncFunctionConstructor.prototype, "constructor", {
       value: newAsyncFunctionConstructor,
@@ -54,22 +56,25 @@ function core(e,window) {
 
     // hook dom
     var oldSetAttribute = window.Element.prototype.setAttribute;
-    window.Element.prototype.setAttribute = function (name, value) {
+    var newSetAttribute = function (name, value) {
       if(typeof value == "string")value = value.replace(/debugger/g, "")
-      // 向上调用
       oldSetAttribute.call(this,name,value)
     };
-    var oldContentWindow = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype,"contentWindow").get
-    Object.defineProperty(window.HTMLIFrameElement.prototype,"contentWindow",{
-      get(){
-        var newV = oldContentWindow.call(this)
-        if(!newV.inject){
-          newV.inject = true;
-          core.call(newV, globalConfig,newV);
+    newSetAttribute.toString = oldSetAttribute.toString.bind(oldSetAttribute);
+    window.Element.prototype.setAttribute = newSetAttribute;
+    try {
+      var oldContentWindow = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype,"contentWindow").get
+      Object.defineProperty(window.HTMLIFrameElement.prototype,"contentWindow",{
+        get(){
+          var newV = oldContentWindow.call(this)
+          if(!newV.inject){
+            newV.inject = true;
+            core.call(newV, globalConfig,newV);
+          }
+          return newV
         }
-        return newV
-      }
-    })
+      })
+    } catch(e) {}
 
   }
   if (e["config-hook-pushState"]) {
@@ -93,11 +98,16 @@ function core(e,window) {
     var oldRegExp = RegExp;
     RegExp = new Proxy(RegExp, {
       apply(target, thisArgument, argumentsList) {
-        // prevent detection of formatting
         if (argumentsList[0] == `\\w+ *\\(\\) *{\\w+ *['|"].+['|"];? *}`) {
           return Reflect.apply(target, thisArgument, [""])
         }
         return Reflect.apply(target, thisArgument, argumentsList)
+      },
+      construct(target, argumentsList, newTarget) {
+        if (argumentsList[0] == `\\w+ *\\(\\) *{\\w+ *['|"].+['|"];? *}`) {
+          return Reflect.construct(target, [""], newTarget)
+        }
+        return Reflect.construct(target, argumentsList, newTarget)
       }
     });
     RegExp.toString = oldRegExp.toString.bind(oldRegExp)

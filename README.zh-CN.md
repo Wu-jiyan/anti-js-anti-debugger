@@ -1,4 +1,4 @@
-# fuck-debugger-extensions
+# anti-js-anti-debugger
 
 简体中文 | [English](README.md)
 
@@ -23,7 +23,7 @@
 ### 下载
 ```
 cd ~
-git clone https://github.com/546669204/fuck-debugger-extensions.git
+git clone https://github.com/Wu-jiyan/anti-js-anti-debugger.git
 
 ```
 
